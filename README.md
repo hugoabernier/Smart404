@@ -10,6 +10,7 @@ An updated version of the 2009/2010 sharepointsmart404 feature which can be used
 The `VanityURLS` contains the mappings from your old SharePoint on-premises URLs to your new SharePoint Online URLs.
 
 To create it, follow these steps:
+
 1. From the root site collection of your on-premises SharePoint 2013, 2016, or 2019, go to **Site Contents**
 2. Select **add an app**
 3. From the list of available apps, select **Custom List**
@@ -24,6 +25,9 @@ To create it, follow these steps:
     RequestURL|Single line of text|Yes|Resist the urge to make this a Hyperlink column, even if that's what we'll put in this column
     RedirectURL|Single line of text|Yes|Also not a Hyperlink column!
     RedirectType|Choice|Yes|Available choices are:<br/>Exact Match<br/>Site<br/>Library<br/><br/>Default value: Exact Match
+    Order|Number|No|
+
+    
 
 
 
