@@ -1,0 +1,9 @@
+{
+    "sourceDirectory": "src",
+    "sharePointSiteUrl": "http://draco.pointalliance.com/test404",
+    "publishingScope": "SaveOnly",
+    "authenticationType": "NTLM",
+    "remoteFolders": [
+        "/SiteAssets/**/*"
+    ]
+}
