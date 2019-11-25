@@ -1,9 +1,0 @@
-{
-    "sourceDirectory": "src",
-    "sharePointSiteUrl": "http://qa-infocentre.iiroc.ca/HugoTest",
-    "publishingScope": "SaveOnly",
-    "authenticationType": "NTLM",
-    "remoteFolders": [
-        "/SiteAssets/**/*"
-    ]
-}
