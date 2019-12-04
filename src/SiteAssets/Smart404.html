@@ -9,17 +9,15 @@
     const locTitleNotFound = "Not Found";
     const locTitleRedirected = "Page Has Moved";
     const vanityURLsListName = "VanityURLs";
-    const spoTenantUrl = null; //"https://yourtenantgoeshere.sharepoint.com";
+    const spoTenantUrl = null; //"https://yourtenant.sharepoint.com";
 
     $(() => {
         SP.SOD.executeFunc('sp.js', 'SP.ClientContext', () => {
             // Get the context
             ctx = new SP.ClientContext.get_current();
-            console.log("Context", ctx);
 
             // Get the requested URL
             requestUrl = getQueryString().requestUrl;
-            console.log("The requestUrl parameter is:", requestUrl);
 
             // If there was no requested URL, the page is being edited,
             // otherwise, process the requested URL
@@ -28,9 +26,6 @@
             }
         });
     });
-
-
-
 
     /**
      * Finds a vanity redirect based on a provided URL
@@ -46,41 +41,32 @@
         var camlQuery = new SP.CamlQuery();
         ViewXml = "<View><Query><Where><And><Eq><FieldRef Name='RequestURL' /><Value Type='Text'>" + url + "</Value></Eq><Eq><FieldRef Name='RedirectType' /><Value Type='Choice'>Exact Match</Value></Eq></And></Where><FieldRef Name='Order0' Ascending='True' /></OrderBy></Query></View>"
         camlQuery.set_viewXml(ViewXml);
-
-        console.log("Query", camlQuery);
         colMatchingVanityURLIItems = vanityUrlsList.getItems(camlQuery);
         ctx.load(colMatchingVanityURLIItems);
-        console.log("Load", colMatchingVanityURLIItems);
 
    
         ctx.executeQueryAsync((_sender, args) => {
-            //debugger;
-            console.log('Query worked');
-            
             var itemCount = colMatchingVanityURLIItems.get_count();
-            console.log('Item count', itemCount);
             if (itemCount > 0) {
                 var listItemEnumerator = colMatchingVanityURLIItems.getEnumerator();
                 while (listItemEnumerator.moveNext()) {
                     var oListItem = listItemEnumerator.get_current();
-                    console.log("oListItem", oListItem);
 
                     var redirectType = oListItem.get_item('RedirectType');
+                    
                     // Redirect URL
                     var redirectUrl = oListItem.get_item('RedirectURL');
-                    //var redirectUrl = redirectObject.get_url();
+
                     var itemRequestUrl = oListItem.get_item('RequestURL');
-                    console.log("RedirectUrl", redirectUrl);
                     if ((redirectType == "Exact Match") && (itemRequestUrl.toString().toLowerCase() == requestUrl.toString().toLowerCase())) {
                         logExactmatch(redirectUrl, "Exact Match Redirected");
-                        //setMessage(redirectUrl);
                         redirectToVanityUrl(redirectUrl);
                         return;
                     }
-                    else if ((redirectType == "Start With") && (requestUrl.toString().toLowerCase().search(itemRequestUrl.toString().toLowerCase()) == 0)) {
+                    else if ((redirectType == "Begins With") && (requestUrl.toString().toLowerCase().search(itemRequestUrl.toString().toLowerCase()) == 0)) {
+                        // TODO: Fix this functionality
                         logStartsWith(redirectUrl, "Start With Redirected");
                         redirectUrl = requestUrl.replace(itemRequestUrl, redirectUrl);
-                        //setMessage(redirectUrl);
                         redirectToVanityUrl(redirectUrl);
                         return;
                     }
@@ -243,8 +229,6 @@
     }
 
     function getQueryString() {
-        console.log("Location", window.location);
-        console.log("Parent Location", window.parent.location);
         var queryStringKeyValue = window.parent.location.search.replace('?', '').split('&');
         var qsJsonObject = {};
         if (queryStringKeyValue != '') {
