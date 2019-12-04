@@ -100,6 +100,8 @@
      * Indicates that the page is not found
      */
     function displayNotFound() {
+        logNoMatch(requestUrl, "Displayed Not Found page");
+
         // Set the page title
         setPageTitle(locTitleNotFound);
 
@@ -140,23 +142,25 @@
 
     function createLogEntry(title, requestUrl, referrer, redirectUrl) {
         // Get the log list
+        debugger;
         var redirectLog = ctx.get_web().get_lists().getByTitle('RedirectLog');
         console.log("redirectLog", redirectLog);
         var itemCreateInfo = new SP.ListItemCreationInformation();
         var listItem = redirectLog.addItem(itemCreateInfo);
         listItem.set_item('Title', title);
-        listItem.set_item('requestUrl', requestUrl);
+        listItem.set_item('RequestedUrl', requestUrl);
         listItem.set_item('Referrer', referrer);
         listItem.set_item('RedirectedTo', redirectUrl);
         listItem.update();
         ctx.load(listItem);
         ctx.executeQueryAsync(
             () => {
-                //debugger;
+                debugger;
                 console.log('Item created: ', listItem.get_id())
 
             },
             (_sender, args) => {
+                debugger;
                 console.log('Error: ', args.get_message())
             });
     }
@@ -201,6 +205,9 @@
 
         const searchQuery = requestUrl.substring(requestUrl.lastIndexOf('/')+1);
         const searchUrl = spoTenantUrl + "/_layouts/15/sharepoint.aspx?q="+ searchQuery +"&v=search";
+
+        createLogEntry("Redirected to search page", requestUrl, document.referrer, searchUrl);
+        
 
         // Set the page title
         setPageTitle(locTitleNotFound);
