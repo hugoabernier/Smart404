@@ -1,72 +1,36 @@
 <script src="//ajax.aspnetcdn.com/ajax/jQuery/jquery-3.4.1.min.js"></script>
 <script>
-    var colltaskListItem;
+    var colMatchingVanityURLIItems;
     var ctx;
-    var requestedUrl;
-    var timeSeconds = 15;
-    var locTitleNotFound = "Not Found";
+    var requestUrl;
+
+    // Change these settings to match your own needs
+    const timeSeconds = 15;
+    const locTitleNotFound = "Not Found";
+    const locTitleRedirected = "Page Has Moved";
+    const vanityURLsListName = "VanityURLs";
+    const spoTenantUrl = null; //"https://yourtenantgoeshere.sharepoint.com";
 
     $(() => {
-        console.log("Document ready");
         SP.SOD.executeFunc('sp.js', 'SP.ClientContext', () => {
+            // Get the context
+            ctx = new SP.ClientContext.get_current();
+            console.log("Context", ctx);
 
-            // This was saved automatically 
-            console.log("location", window.location.search);
-            //setTitle(locTitleNotFound);
-            //set404Title(locPageNotFoundMessage);
-            //setMessage("");
+            // Get the requested URL
+            requestUrl = getQueryString().requestUrl;
+            console.log("The requestUrl parameter is:", requestUrl);
 
-            // Try to skip redirecting if the page is in design mode
-            // var inDesignMode = document.forms[MSOWebPartPageFormName].MSOLayout_InDesignMode.value;
-            // console.log("MSOWebPartPageFormName", document.forms[MSOWebPartPageFormName]);
-            // console.log("MSO_Layout_InDesignMode", document.forms[MSOWebPartPageFormName].MSOLayout_InDesignMode);
-            // console.log("inDesignMode", inDesignMode);
-
-            // if (inDesignMode == "1") {
-            //     // page is in design mode
-            //     console.log("Design mode");
-            //     setDesignMode();
-            // }
-            // else {
-            //     // page is in browse mode
-            //     console.log("Browse mode");
-            // }
-            requestedUrl = getQueryStringParameterByName("requestUrl", window.location.search);
-            console.log("RequestedUrl", requestedUrl);
-
-            if (requestedUrl) {
-                // Get the context
-                ctx = new SP.ClientContext.get_current();
-                console.log("Context", ctx);
-
-                getRedirectUrl(requestedUrl);
+            // If there was no requested URL, the page is being edited,
+            // otherwise, process the requested URL
+            if (requestUrl) {
+                getRedirectUrl(requestUrl);
             }
         });
     });
 
-    /**
-     * Sets the smart 404 templates area in design mode so that you can see them
-     * when the page is in design mode
-     */
-    function setDesignMode() {
-        $("#smart404templates").addClass("designmode");
-    }
 
-    /**
-     * Extracts a query parameter by name
-     * @param parameterName the parameter name
-     * @param url The URL containing the query string
-     */
-    function getQueryStringParameterByName(parameterName, url) {
-        if (!url) url = window.location.search;
-        parameterName = parameterName.replace(/[\[\]]/g, "\\$&");
-        var regularExpression =
-            new RegExp("[?&]" + parameterName + "(=([^&#]*)|&|#|$)"),
-            results = regularExpression.exec(url);
-        if (!results) return null;
-        if (!results[2]) return '';
-        return decodeURIComponent(results[2].replace(/\+/g, " "));
-    }
+
 
     /**
      * Finds a vanity redirect based on a provided URL
@@ -76,138 +40,87 @@
         console.log("Searching for redirect", url);
         url = url.toLowerCase();
 
-        var smartRedirects = ctx.get_web().get_lists().getByTitle('SmartRedirects');
-        console.log("smartRedirects", smartRedirects);
+        var vanityUrlsList = ctx.get_web().get_lists().getByTitle(vanityURLsListName);
+        ctx.load(vanityUrlsList);
 
-        var viewXml =
-            "<View><Query>" +
-            "<Where><Leq><FieldRef Name='RequestUrl' /><Value Type='Text'>" + url + "</Value></Leq></Where>" +
-            "<OrderBy><FieldRef Name='Order' Ascending='True' /></OrderBy>" +
-            "</Query>" +
-            "</View>";
         var camlQuery = new SP.CamlQuery();
-        camlQuery.set_viewXml(viewXml);
+        ViewXml = "<View><Query><Where><And><Eq><FieldRef Name='RequestURL' /><Value Type='Text'>" + url + "</Value></Eq><Eq><FieldRef Name='RedirectType' /><Value Type='Choice'>Exact Match</Value></Eq></And></Where><FieldRef Name='Order0' Ascending='True' /></OrderBy></Query></View>"
+        camlQuery.set_viewXml(ViewXml);
 
         console.log("Query", camlQuery);
-        colltaskListItem = smartRedirects.getItems(camlQuery);
-        ctx.load(colltaskListItem);
-        ctx.executeQueryAsync(Function.createDelegate(this, this.OnQuerySucceeded),
-            Function.createDelegate(this, this.OnQueryFailed));
-    }
+        colMatchingVanityURLIItems = vanityUrlsList.getItems(camlQuery);
+        ctx.load(colMatchingVanityURLIItems);
+        console.log("Load", colMatchingVanityURLIItems);
 
-    /**
-     * Gets called when a query for a redirect URL is found
-     * @param _sender Unused
-     * @param _args Unused
-     */
-    function onQuerySucceeded(_sender, _args) {
-        var itemCount = colltaskListItem.get_count();
-        if (itemCount > 0) {
-            var listItemEnumerator = colltaskListItem.getEnumerator();
-            while (listItemEnumerator.moveNext()) {
-                var oListItem = listItemEnumerator.get_current();
-                console.log("oListItem", oListItem);
+   
+        ctx.executeQueryAsync((_sender, args) => {
+            //debugger;
+            console.log('Query worked');
+            
+            var itemCount = colMatchingVanityURLIItems.get_count();
+            console.log('Item count', itemCount);
+            if (itemCount > 0) {
+                var listItemEnumerator = colMatchingVanityURLIItems.getEnumerator();
+                while (listItemEnumerator.moveNext()) {
+                    var oListItem = listItemEnumerator.get_current();
+                    console.log("oListItem", oListItem);
 
-                var redirectType = oListItem.get_item('RedirectType');
-                // Redirect URL
-                var redirectObject = oListItem.get_item('RedirectUrl');
-                var redirectUrl = redirectObject.get_url();
-                var itemRequestUrl = oListItem.get_item('RequestUrl');
-                console.log("RedirectUrl", redirectUrl);
-                if ((redirectType == "Exact Match") && (itemRequestUrl.toString().toLowerCase() == requestedUrl.toString().toLowerCase())) {
-                    logExactmatch(redirectUrl, "Exact Match Redirected");
-                    setMessage(redirectUrl);
-                    delayRedirect(redirectUrl);
-                    return;
+                    var redirectType = oListItem.get_item('RedirectType');
+                    // Redirect URL
+                    var redirectUrl = oListItem.get_item('RedirectURL');
+                    //var redirectUrl = redirectObject.get_url();
+                    var itemRequestUrl = oListItem.get_item('RequestURL');
+                    console.log("RedirectUrl", redirectUrl);
+                    if ((redirectType == "Exact Match") && (itemRequestUrl.toString().toLowerCase() == requestUrl.toString().toLowerCase())) {
+                        logExactmatch(redirectUrl, "Exact Match Redirected");
+                        //setMessage(redirectUrl);
+                        redirectToVanityUrl(redirectUrl);
+                        return;
+                    }
+                    else if ((redirectType == "Start With") && (requestUrl.toString().toLowerCase().search(itemRequestUrl.toString().toLowerCase()) == 0)) {
+                        logStartsWith(redirectUrl, "Start With Redirected");
+                        redirectUrl = requestUrl.replace(itemRequestUrl, redirectUrl);
+                        //setMessage(redirectUrl);
+                        redirectToVanityUrl(redirectUrl);
+                        return;
+                    }
                 }
-                else if ((redirectType == "Start With") && (requestedUrl.toString().toLowerCase().search(itemRequestUrl.toString().toLowerCase()) == 0)) {
-                    logStartsWith(redirectUrl, "Start With Redirected");
-                    redirectUrl = requestedUrl.replace(itemRequestUrl, redirectUrl);
-                    setMessage(redirectUrl);
-                    delayRedirect(redirectUrl);
-                    return;
-                }
+               
             }
-            console.log("No matching items found", requestedUrl);
-            displayNotFound();
-            logNoMatch(redirectUrl, "No matching items found");
-            var searchPage = getSPOSearchUrl();
-            delayRedirect(searchPage);
-        }
-        else {
-            console.log("No matching items found", requestedUrl);
-            displayNotFound();
-            logNoMatch(redirectUrl, "No matching items found");
-            var searchPage = getSPOSearchUrl();
-            delayRedirect(searchPage);
-        }
-    }
 
-    /**
-     * Gets called when the query failed 
-     * @param _sender Unused
-     * @param args The error
-     */
-    function onQueryFailed(_sender, args) {
-        console.log('Error: ', args.get_message(), args.get_stackTrace());
-    }
+            console.log("No matching items found", requestUrl);
+            
+            // See if we can extract the document name AND we have a tenant URL
+            if (requestUrl.lastIndexOf('/') > 0 && spoTenantUrl !== null) {
+                redirectToSearch(requestUrl);
+            } else {
+                displayNotFound();
+            }
 
-    /**
-     * Returns a static SharePoint Online search URL
-     */
-    function getSPOSearchUrl() {
-        var url = window.location.href;
-        var arr = url.split("/");
-        var result = arr[0] + "//" + arr[2] + "/_layouts/15/osssearchresults.aspx";
-        return result;
-
-    }
-
-    /**
-     * Sets the message to display
-     * @param redirectmessage the message to display
-     */
-    function setMessage(redirectmessage) {
-        var myelement1 = $("#ctl00_PlaceHolderMain_ctl01__ControlWrapper_RichHtmlField").find("h2");
-        myelement1.text("Please wait for " + timeSeconds + " seconds, this page will be redirect to: " + redirectmessage);
+        }, (_sender, args) => {
+            console.log('Error: ', args.get_message())
+        });
     }
 
     /**
      * Sets the page title
-     * @param redirectmessage the title
+     * @param pageTitle the title
      */
-    function setTitle(redirectmessage) {
-        var titleElm = $("#DeltaPlaceHolderPageTitleInTitleArea");
-        if (titleElm) {
-            titleElm.text(redirectmessage);
-        }
-
-
-        // What does this do?
-        //var myelement1 = $("#ctl00_PlaceHolderMain_ctl01__ControlWrapper_RichHtmlField").find("p:last");
-        //myelement1.text("");
-    }
-
-    /**
-     * Sets the 404 title
-     * @param message The message to display
-     */
-    function set404Title(message) {
-        $("#smart404Title").text(message);
+    function setPageTitle(newTitle) {
+        $("#DeltaPlaceHolderPageTitleInTitleArea").text(newTitle);
     }
 
     /**
      * Indicates that the page is not found
      */
     function displayNotFound() {
-        var myelement = $("#DeltaPlaceHolderPageTitleInTitleArea");
-        myelement.text("Page not found");
-        setTitle("Page not found");
-        //set404Title(locPageNotFoundMessage);
-        //setMessage(`The page you're looking for doesn't exist. Please wait for ${timeSeconds} seconds, this page will be redirect to search page.`);
-        //var myelement1 = $("#ctl00_PlaceHolderMain_ctl01__ControlWrapper_RichHtmlField").find("h2");
-        //myelement1.text("The page you're looking for doesn't exist. Please wait for " + timeSeconds + " seconds, this page will be redirect to search page.");
+        // Set the page title
+        setPageTitle(locTitleNotFound);
+
+        // Show the Not Found template
+        $("#NotFoundTemplate").show();
     }
+
 
     /**
      * Logs an entry when a partial match was found
@@ -215,57 +128,18 @@
      * @param outcome The outcome
      */
     function logStartsWith(redirectUrl, outcome) {
-        console.log("Logging Exact Match Redirect", requestedUrl, redirectUrl, outcome);
-
-        // Get the log list
-        var redirectLog = ctx.get_web().get_lists().getByTitle('RedirectLog');
-        console.log("redirectLog", redirectLog);
-        var itemCreateInfo = new SP.ListItemCreationInformation();
-        var listItem = redirectLog.addItem(itemCreateInfo);
-        listItem.set_item('Title', requestedUrl);
-        listItem.set_item('RequestUrl', requestedUrl);
-        listItem.set_item('Referrer', document.referrer);
-        listItem.set_item('RedirectedTo', redirectUrl);
-        listItem.update();
-        ctx.load(listItem);
-        ctx.executeQueryAsync(
-            () => {
-                debugger;
-                console.log('Item created: ', listItem.get_id())
-
-            },
-            (_sender, args) => {
-                console.log('Error: ', args.get_message())
-            });
+        console.log("Logging Starts With Redirect", requestUrl, redirectUrl, outcome);
+        createLogEntry(requestUrl, requestUrl, document.referrer, redirectUrl);
     }
 
     /**
      * Logs an exact match redirect
-     * @param redirectUrl The requested URL
+     * @param redirectUrl The request URL
      * @param outcome The outcome
      */
     function logExactmatch(redirectUrl, outcome) {
-        console.log("Logging Exact Match Redirect", requestedUrl, redirectUrl, outcome);
-        // Get the log list
-        var redirectLog = ctx.get_web().get_lists().getByTitle('RedirectLog');
-        console.log("redirectLog", redirectLog);
-        var itemCreateInfo = new SP.ListItemCreationInformation();
-        var listItem = redirectLog.addItem(itemCreateInfo);
-        listItem.set_item('Title', requestedUrl);
-        listItem.set_item('RequestedUrl', requestedUrl);
-        listItem.set_item('Referrer', document.referrer);
-        listItem.set_item('RedirectedTo', redirectUrl);
-        listItem.update();
-        ctx.load(listItem);
-        ctx.executeQueryAsync(
-            () => {
-                debugger;
-                console.log('Item created: ', listItem.get_id())
-
-            },
-            (_sender, args) => {
-                console.log('Error: ', args.get_message())
-            });
+        console.log("Logging Exact Match Redirect", requestUrl, redirectUrl, outcome);
+        createLogEntry(requestUrl, requestUrl, document.referrer, redirectUrl);
     }
 
     /**
@@ -274,20 +148,25 @@
      * @param outcome The outcome
      */
     function logNoMatch(redirectUrl, outcome) {
-        console.log("Logging None Existing", requestedUrl, redirectUrl, outcome);
+        console.log("Logging None Existing", requestUrl, redirectUrl, outcome);
+        createLogEntry(outcome, requestUrl, document.referrer, "");
+    }
+
+    function createLogEntry(title, requestUrl, referrer, redirectUrl) {
         // Get the log list
         var redirectLog = ctx.get_web().get_lists().getByTitle('RedirectLog');
         console.log("redirectLog", redirectLog);
         var itemCreateInfo = new SP.ListItemCreationInformation();
         var listItem = redirectLog.addItem(itemCreateInfo);
-        listItem.set_item('Title', outcome);
-        listItem.set_item('RequestedUrl', requestedUrl);
-        listItem.set_item('Referrer', document.referrer);
+        listItem.set_item('Title', title);
+        listItem.set_item('requestUrl', requestUrl);
+        listItem.set_item('Referrer', referrer);
+        listItem.set_item('RedirectedTo', redirectUrl);
         listItem.update();
         ctx.load(listItem);
         ctx.executeQueryAsync(
             () => {
-                debugger;
+                //debugger;
                 console.log('Item created: ', listItem.get_id())
 
             },
@@ -295,30 +174,108 @@
                 console.log('Error: ', args.get_message())
             });
     }
+    
+    /**
+     * Redirects users from the page after a delay
+     */
+    function redirectToVanityUrl(redirectUrl) {
+        // Set the page title
+        setPageTitle(locTitleRedirected);
+
+        // Replace redirected URL values
+        $("#NewUrl").text(redirectUrl).attr("href", redirectUrl);
+
+        // Display the redirect template
+        $("#RedirectingTemplate").show();
+        
+        console.log("Redirecting to", redirectUrl);
+
+        // Set the redirect timer
+        window.setTimeout(() => {
+            console.log("Timeout Redirecting to", redirectUrl);
+            window.parent.location.href = redirectUrl
+        }, timeSeconds * 1000);
+
+        // Start a countdown
+        var timeLeft = timeSeconds;
+
+        var downloadTimer = setInterval(()=> {
+            $("#countdown").text(timeLeft);
+            timeLeft -= 1;
+            if (timeLeft <= 0) {
+                clearInterval(downloadTimer);
+            }
+        }, 1000); 
+    }
 
     /**
      * Redirects users from the page after a delay
      */
-    function delayRedirect(_redirectUrl) {
-        //set404Title(locPageMovedMessage);
-        window.setTimeout(() => { window.location.href = _redirectUrl }, timeSeconds * 1000);
+     function redirectToSearch(requestUrl) {
+
+        const searchQuery = requestUrl.substring(requestUrl.lastIndexOf('/')+1);
+        const searchUrl = spoTenantUrl + "/_layouts/15/sharepoint.aspx?q="+ searchQuery +"&v=search";
+
+        // Set the page title
+        setPageTitle(locTitleNotFound);
+
+        $("#SearchUrl").attr("href", searchUrl);
+
+        // Display the redirect template
+        $("#RedirectingToSearchTemplate").show();
+        
+        // Set the redirect timer
+        window.setTimeout(() => {
+            console.log("Timeout Redirecting to", searchUrl);
+            window.parent.location.href = searchUrl
+        }, timeSeconds * 1000);
+
+        // Start a countdown
+        var timeLeft = timeSeconds;
+
+        var downloadTimer = setInterval(()=> {
+            $("#searchCountdown").text(timeLeft);
+            timeLeft -= 1;
+            if (timeLeft <= 0) {
+                clearInterval(downloadTimer);
+            }
+        }, 1000); 
+    }
+
+    function getQueryString() {
+        console.log("Location", window.location);
+        console.log("Parent Location", window.parent.location);
+        var queryStringKeyValue = window.parent.location.search.replace('?', '').split('&');
+        var qsJsonObject = {};
+        if (queryStringKeyValue != '') {
+            for (i = 0; i < queryStringKeyValue.length; i++) {
+                qsJsonObject[queryStringKeyValue[i].split('=')[0]] = queryStringKeyValue[i].split('=')[1];
+            }
+        }
+        return qsJsonObject;
     }
 </script>
 <style>
     #smart404templates .smart404template {
-        display: block;
+        display: none;
     }
 
-    #smart404templates.designmode .smart404template {
-        background-color: red;
-        display: block;
+    #smart404templates .smart404template div {
+        padding-top: 16px;
     }
 </style>
 <div id="smart404templates">
-    <div id="smart404NotFound" class="smart404template">
+    <div id="NotFoundTemplate" class="smart404template">
         <h1>The page you're looking for does not exist.</h1>
     </div>
-    <div id="smart404Redirecting" class="smart404template">
-        <h1 id="smart404Title">The page you're looking for has moved.</h1>
+    <div id="RedirectingToSearchTemplate" class="smart404template">
+        <h1>The page you're looking for does not exist.</h1>
+        <div>We will redirect you to your <a id="SearchUrl" href="">Office 365 search page</a> in <span id="searchCountdown">15</span> seconds.</div>
+    </div>
+    <div id="RedirectingTemplate" class="smart404template">
+        <h1>The page you're looking for has moved.</h1>
+        <div>Your page has moved to <a id="NewUrl" href=""></a>.</div>
+        <div>To avoid getting this message in the future, please update your bookmarks accordingly.</div>
+        <div>We will redirect you to your new location in <span id="countdown">15</span> seconds.</div>
     </div>
 </div>

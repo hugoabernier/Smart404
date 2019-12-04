@@ -1,5 +1,8 @@
 # Smart 404 Revived
+
 An updated version of the 2009/2010 sharepointsmart404 feature which can be used with SharePoint 2013, 2016, and 2019.
+
+> Disclaimer: I didn't test it with every version of SharePoint on-prem. If you find any issues, please let me know by creating an issue in the repository.
 
 ![Smart 404 Revived](./assets/Smart404Title.png)
 
@@ -24,10 +27,6 @@ To create it, follow these steps:
     ---|---|---|--
     RequestURL|Single line of text|Yes|Resist the urge to make this a Hyperlink column, even if that's what we'll put in this column
     RedirectURL|Single line of text|Yes|Also not a Hyperlink column!
-    RedirectType|Choice|Yes|Available choices are:<br/>Exact Match<br/>Site<br/>Library<br/><br/>Default value: Exact Match
+    RedirectType|Choice|Yes|Available choices are:<br/>Exact Match<br/>Starts With<br/><br/>Default value: Exact Match
     Order|Number|No|
-
     
-
-
-
