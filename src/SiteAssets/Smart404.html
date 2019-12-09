@@ -1,15 +1,17 @@
 <script src="//ajax.aspnetcdn.com/ajax/jQuery/jquery-3.4.1.min.js"></script>
 <script>
-    var colMatchingVanityURLIItems;
+    "use strict";
+    var colMatchingVanityURLItems;
     var ctx;
     var requestUrl;
-
+    var vanityUrlsList;
     // Change these settings to match your own needs
     const timeSeconds = 15;
     const locTitleNotFound = "Not Found";
     const locTitleRedirected = "Page Has Moved";
     const vanityURLsListName = "VanityURLs";
     const spoTenantUrl = null; //"https://yourtenant.sharepoint.com";
+
 
     $(() => {
         SP.SOD.executeFunc('sp.js', 'SP.ClientContext', () => {
@@ -35,54 +37,35 @@
         console.log("Searching for redirect", url);
         url = url.toLowerCase();
 
-        var vanityUrlsList = ctx.get_web().get_lists().getByTitle(vanityURLsListName);
+        vanityUrlsList = ctx.get_web().get_lists().getByTitle(vanityURLsListName);
         ctx.load(vanityUrlsList);
 
+        // Look for an exact match first
         var camlQuery = new SP.CamlQuery();
-        ViewXml = "<View><Query><Where><And><Eq><FieldRef Name='RequestURL' /><Value Type='Text'>" + url + "</Value></Eq><Eq><FieldRef Name='RedirectType' /><Value Type='Choice'>Exact Match</Value></Eq></And></Where><FieldRef Name='Order0' Ascending='True' /></OrderBy></Query></View>"
-        camlQuery.set_viewXml(ViewXml);
-        colMatchingVanityURLIItems = vanityUrlsList.getItems(camlQuery);
-        ctx.load(colMatchingVanityURLIItems);
+        var viewXml = `<View><RowLimit>1</RowLimit><Query><Where><And><Eq><FieldRef Name='RequestURL' /><Value Type='Text'>${url}</Value></Eq><Eq><FieldRef Name='RedirectType' /><Value Type='Choice'>Exact Match</Value></Eq></And></Where></Query></View>`
+        camlQuery.set_viewXml(viewXml);
+        colMatchingVanityURLItems = vanityUrlsList.getItems(camlQuery);
+        ctx.load(colMatchingVanityURLItems);
 
-   
+
         ctx.executeQueryAsync((_sender, args) => {
-            var itemCount = colMatchingVanityURLIItems.get_count();
+            var itemCount = colMatchingVanityURLItems.get_count();
             if (itemCount > 0) {
-                var listItemEnumerator = colMatchingVanityURLIItems.getEnumerator();
+                var listItemEnumerator = colMatchingVanityURLItems.getEnumerator();
                 while (listItemEnumerator.moveNext()) {
                     var oListItem = listItemEnumerator.get_current();
 
-                    var redirectType = oListItem.get_item('RedirectType');
-                    
                     // Redirect URL
                     var redirectUrl = oListItem.get_item('RedirectURL');
 
                     var itemRequestUrl = oListItem.get_item('RequestURL');
-                    if ((redirectType == "Exact Match") && (itemRequestUrl.toString().toLowerCase() == requestUrl.toString().toLowerCase())) {
-                        logExactmatch(redirectUrl, "Exact Match Redirected");
-                        redirectToVanityUrl(redirectUrl);
-                        return;
-                    }
-                    else if ((redirectType == "Begins With") && (requestUrl.toString().toLowerCase().search(itemRequestUrl.toString().toLowerCase()) == 0)) {
-                        // TODO: Fix this functionality
-                        logStartsWith(redirectUrl, "Start With Redirected");
-                        redirectUrl = requestUrl.replace(itemRequestUrl, redirectUrl);
-                        redirectToVanityUrl(redirectUrl);
-                        return;
-                    }
+                    logExactmatch(redirectUrl, "Exact Match Redirected");
+                    redirectToVanityUrl(redirectUrl);
+                    return;
                 }
-               
-            }
-
-            console.log("No matching items found", requestUrl);
-            
-            // See if we can extract the document name AND we have a tenant URL
-            if (requestUrl.lastIndexOf('/') > 0 && spoTenantUrl !== null) {
-                redirectToSearch(requestUrl);
             } else {
-                displayNotFound();
-            }
-
+                findStartsWith(url);
+            } 
         }, (_sender, args) => {
             console.log('Error: ', args.get_message())
         });
@@ -116,7 +99,7 @@
      * @param outcome The outcome
      */
     function logStartsWith(redirectUrl, outcome) {
-        console.log("Logging Starts With Redirect", requestUrl, redirectUrl, outcome);
+        console.log("Logging Starts With", requestUrl, redirectUrl, outcome);
         createLogEntry(requestUrl, requestUrl, document.referrer, redirectUrl);
     }
 
@@ -142,7 +125,7 @@
 
     function createLogEntry(title, requestUrl, referrer, redirectUrl) {
         // Get the log list
-        debugger;
+        //debugger;
         var redirectLog = ctx.get_web().get_lists().getByTitle('RedirectLog');
         console.log("redirectLog", redirectLog);
         var itemCreateInfo = new SP.ListItemCreationInformation();
@@ -155,16 +138,16 @@
         ctx.load(listItem);
         ctx.executeQueryAsync(
             () => {
-                debugger;
+                //debugger;
                 console.log('Item created: ', listItem.get_id())
 
             },
             (_sender, args) => {
-                debugger;
+                //debugger;
                 console.log('Error: ', args.get_message())
             });
     }
-    
+
     /**
      * Redirects users from the page after a delay
      */
@@ -177,7 +160,7 @@
 
         // Display the redirect template
         $("#RedirectingTemplate").show();
-        
+
         console.log("Redirecting to", redirectUrl);
 
         // Set the redirect timer
@@ -189,25 +172,25 @@
         // Start a countdown
         var timeLeft = timeSeconds;
 
-        var downloadTimer = setInterval(()=> {
+        var downloadTimer = setInterval(() => {
             $("#countdown").text(timeLeft);
             timeLeft -= 1;
             if (timeLeft <= 0) {
                 clearInterval(downloadTimer);
             }
-        }, 1000); 
+        }, 1000);
     }
 
     /**
      * Redirects users from the page after a delay
      */
-     function redirectToSearch(requestUrl) {
+    function redirectToSearch(requestUrl) {
 
-        const searchQuery = requestUrl.substring(requestUrl.lastIndexOf('/')+1);
-        const searchUrl = spoTenantUrl + "/_layouts/15/sharepoint.aspx?q="+ searchQuery +"&v=search";
+        const searchQuery = requestUrl.substring(requestUrl.lastIndexOf('/') + 1);
+        const searchUrl = spoTenantUrl + "/_layouts/15/sharepoint.aspx?q=" + searchQuery + "&v=search";
 
         createLogEntry("Redirected to search page", requestUrl, document.referrer, searchUrl);
-        
+
 
         // Set the page title
         setPageTitle(locTitleNotFound);
@@ -216,7 +199,7 @@
 
         // Display the redirect template
         $("#RedirectingToSearchTemplate").show();
-        
+
         // Set the redirect timer
         window.setTimeout(() => {
             console.log("Timeout Redirecting to", searchUrl);
@@ -226,24 +209,86 @@
         // Start a countdown
         var timeLeft = timeSeconds;
 
-        var downloadTimer = setInterval(()=> {
+        var downloadTimer = setInterval(() => {
             $("#searchCountdown").text(timeLeft);
             timeLeft -= 1;
             if (timeLeft <= 0) {
                 clearInterval(downloadTimer);
             }
-        }, 1000); 
+        }, 1000);
     }
 
+    /**
+     * Gets an array of query string variables
+     */
     function getQueryString() {
         var queryStringKeyValue = window.parent.location.search.replace('?', '').split('&');
         var qsJsonObject = {};
         if (queryStringKeyValue != '') {
-            for (i = 0; i < queryStringKeyValue.length; i++) {
+            for (var i = 0; i < queryStringKeyValue.length; i++) {
                 qsJsonObject[queryStringKeyValue[i].split('=')[0]] = queryStringKeyValue[i].split('=')[1];
             }
         }
         return qsJsonObject;
+    }
+
+    function findStartsWith(startWithUrl) {
+        console.log("Find starts with", startWithUrl);
+        var camlStartsWithQuery = new SP.CamlQuery();
+        var startsWithViewXml = `<View><Query><Where><And><Eq><FieldRef Name='RequestURL' /><Value Type='Text'>${startWithUrl}</Value></Eq><Eq><FieldRef Name='RedirectType' /><Value Type='Choice'>Begins With</Value></Eq></And></Where></Query></View>`
+        camlStartsWithQuery.set_viewXml(startsWithViewXml);
+        var colStartsWithItems = vanityUrlsList.getItems(camlStartsWithQuery);
+        ctx.load(colStartsWithItems);
+
+        ctx.executeQueryAsync((_sender, args) => {
+            var itemCount = colStartsWithItems.get_count();
+            console.log("Item count for URL", startWithUrl, itemCount);
+            if (itemCount === 0) {
+                // Get the protocol to make it easier to search URLs later
+                var protocol = startWithUrl.substring(0, startWithUrl.lastIndexOf(":") + 3);
+                console.log("Protocol", protocol);
+
+                // Get the URL without the protocol so that we can start parsing up the directory structure
+                var truncatedUrl = startWithUrl.substring(protocol.length);
+                console.log("Truncated", truncatedUrl);
+
+                // Truncate URL
+                if (truncatedUrl.lastIndexOf("/") > 0) {
+                    truncatedUrl = truncatedUrl.substring(0, truncatedUrl.lastIndexOf("/"))
+                } else {
+                    truncatedUrl = "";
+                    console.log("Reached end of truncated URL");
+                    displayNotFound();
+                    return;
+                }
+                
+                console.log("New truncated URL", protocol + truncatedUrl);
+                findStartsWith(protocol + truncatedUrl);
+            } else  {
+                var startsWithEnumerator = colStartsWithItems.getEnumerator();
+                while (startsWithEnumerator.moveNext()) {
+                    var startsWithItem = startsWithEnumerator.get_current();
+
+                    //var redirectType = oListItem.get_item('RedirectType');
+
+                    // Redirect URL
+                    var redirectUrl = startsWithItem.get_item('RedirectURL');
+
+                    var itemRequestUrl = startsWithItem.get_item('RequestURL');
+                    
+                    logStartsWith(redirectUrl, "Redirected to Starts With URL");
+                    redirectToVanityUrl(redirectUrl);
+                    
+                    return;
+                }
+
+            }
+        }, (_sender, args) => {
+            console.log('Error: ', args.get_message())
+        });
+
+
+
     }
 </script>
 <style>
@@ -261,7 +306,8 @@
     </div>
     <div id="RedirectingToSearchTemplate" class="smart404template">
         <h1>The page you're looking for does not exist.</h1>
-        <div>We will redirect you to your <a id="SearchUrl" href="">Office 365 search page</a> in <span id="searchCountdown">15</span> seconds.</div>
+        <div>We will redirect you to your <a id="SearchUrl" href="">Office 365 search page</a> in <span
+                id="searchCountdown">15</span> seconds.</div>
     </div>
     <div id="RedirectingTemplate" class="smart404template">
         <h1>The page you're looking for has moved.</h1>

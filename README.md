@@ -28,5 +28,4 @@ To create it, follow these steps:
     RequestURL|Single line of text|Yes|Resist the urge to make this a Hyperlink column, even if that's what we'll put in this column
     RedirectURL|Single line of text|Yes|Also not a Hyperlink column!
     RedirectType|Choice|Yes|Available choices are:<br/>Exact Match<br/>Starts With<br/><br/>Default value: Exact Match
-    Order|Number|No|
     
