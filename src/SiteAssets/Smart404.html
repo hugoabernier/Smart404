@@ -235,7 +235,7 @@
     function findStartsWith(startWithUrl) {
         console.log("Find starts with", startWithUrl);
         var camlStartsWithQuery = new SP.CamlQuery();
-        var startsWithViewXml = `<View><Query><Where><And><Eq><FieldRef Name='RequestURL' /><Value Type='Text'>${startWithUrl}</Value></Eq><Eq><FieldRef Name='RedirectType' /><Value Type='Choice'>Begins With</Value></Eq></And></Where></Query></View>`
+        var startsWithViewXml = `<View><Query><Where><And><Eq><FieldRef Name='RequestURL' /><Value Type='Text'>${startWithUrl}</Value></Eq><Eq><FieldRef Name='RedirectType' /><Value Type='Choice'>    </Value></Eq></And></Where></Query></View>`
         camlStartsWithQuery.set_viewXml(startsWithViewXml);
         var colStartsWithItems = vanityUrlsList.getItems(camlStartsWithQuery);
         ctx.load(colStartsWithItems);
