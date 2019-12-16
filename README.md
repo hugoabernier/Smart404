@@ -27,5 +27,30 @@ To create it, follow these steps:
     ---|---|---|--
     RequestURL|Single line of text|Yes|Resist the urge to make this a Hyperlink column, even if that's what we'll put in this column
     RedirectURL|Single line of text|Yes|Also not a Hyperlink column!
-    RedirectType|Choice|Yes|Available choices are:<br/>Exact Match<br/>Starts With<br/><br/>Default value: Exact Match
+    RedirectType|Choice|Yes|Available choices are:<br/>Exact Match<br/>Starts With<br/>Regular Expression<br/><br/>Default value: Exact Match
+    RegExp|Single line of text|No|Used for **Regular Expression** match types
+    Order|Number|No|
+    
+### Create the `RedirectLog` list
+
+The `RedirectLog` records every time the Smart 404 displays. You can use it to detect if anyone has not updated their shortcuts (or is just being plain stubborn)
+
+To create it, follow these steps:
+
+1. From the root site collection of your on-premises SharePoint 2013, 2016, or 2019, go to **Site Contents**
+2. Select **add an app**
+3. From the list of available apps, select **Custom List**
+4. When prompted to give the list a name, enter **RedirectLog** then select **Create**. If you want to change the name of this list, keep in mind that you'll have to change the code later.
+5. Once SharePoint displays the list, select **List Settings** from the **List** ribbon.
+6. From the **List Settings** page, select **Advanced Settings**
+7. From the **Advanced Settings**, disable attachments by selecting **Disabled** under **Attachments to list items are:** then **OK**. This step is optional, but I like to keep things clean.
+8. From the **Item-level permissions** section, select **Read items that were created by the user**. This helps keep things a bit more confidential.
+9. Back in the **List Settings**, under **Columns**, select **Create column** and create the following columns using the information below (use default settings unless specified):
+
+    Name|Type|Required?|Notes
+    ---|---|---|--
+    Title|Single line of text|Yes|
+    RequestedUrl|Single line of text|Yes|
+    RedirectedTo|Single line of text|No|
+    Referrer|Single line of text|No|
     
