@@ -54,3 +54,31 @@ To create it, follow these steps:
     RedirectedTo|Single line of text|No|
     Referrer|Single line of text|No|
     
+### Configure the `Smart404` page
+
+The `Smart404` page is an HTML file that contains the display templates for such messages as **Not Found**, and **Content Has Moved**, along with the Javascript to look up for vanity URLs and redirect users.
+
+You can use the page as-is without changing it, but there are a few lines of code  that you can change to suit your needs:
+
+Setting|Description|Code|Notes
+---|---|---|--
+timeSeconds|Controls the duration of the countdown before redirecting users|`var timeSeconds = 15;`| Default is **15** seconds. Long enough to just be annoying enough that it encourages users to change their bookmarks.
+vanityURLListName|The title of your `VanityURLs` list|`var vanityURLsListName = "VanityURLs";`|Only need to change it if you decided to name your `VanityURLs` list something else
+RedirectLogListName|The name of your `RedirectLog` list|`var redirectLogListName = "RedirectLog";`|Only need to change it if you decided to name your `RedirectLog` list something else
+spoTenantUrl|Your SharePoint Online tenant URL|`var spoTenantUrl = null;`|Change if you'd like any **Not Found** results to automatically redirect to the SPO Search Page. For example, use `var spoTenantUrl = "https://yourtenant.sharepoint.com";`    
+fqdnOnPremUrl|FQDN name for your SharePoint On-Prem server.|`var fqdnOnPremUrl = null;`|Use this option in combination with `machineOnPremUrl` if your on-prem SharePoint server used to be available as a machine name only and you don't want to have to enter two sets of vanity URLS (one for the machine name, and one for the FQDN name). E.g.: `var fqdnOnPremUrl = '//sharepoint.mycompany.com'`
+machineOnPremUrl|The machine name of your on-prem SharePoint server|`var machineOnPremUrl = null;`|Use in combination with `fqdnOnPremUrl`. E.g.: `var machineOnPremUrl = '//sharepointprod01'`|
+locTitleNotFound|The localized title to display for **Not Found** results|`var locTitleNotFound = "Not Found";`|Replace for anything else you want to display
+locTitleRedirected|The localized title to display for **Page Has Moved** results|`   var locTitleRedirected = "Page Has Moved";`|Replace for anything you wish.
+
+
+In addition there are three HTML display templates that you can change. You can customize the HTML to suit your needs (e.g.: add some useful links, add a cute image, etc.) -- just make sure to keep the `id` attribute of each `div` element the same (that's how the code decides what to show). 
+
+The template `id`s are:
+
+Template ID|Description
+---|---
+NotFoundTemplate|Displays a **Not Found** result.
+RedirectingToSearchTemplate|Displays a **Not Found** result that will redirect users to the SharePoint Online search page (if the `spoTenantUrl` value isn't `null`)
+RedirectingTemplate|Displays a **Page Has Moved** template, which will redirect users after a short time.
+
