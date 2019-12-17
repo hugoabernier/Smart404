@@ -24,9 +24,9 @@
   <MissingAssembly>Cannot import this Web Part.</MissingAssembly>
   <PartImageLarge>/_layouts/15/images/mscontl.gif</PartImageLarge>
   <IsIncludedFilter />
-  <Assembly>Microsoft.SharePoint, Version=15.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c</Assembly>
+  <Assembly>Microsoft.SharePoint, Version=16.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c</Assembly>
   <TypeName>Microsoft.SharePoint.WebPartPages.ContentEditorWebPart</TypeName>
-  <ContentLink xmlns="http://schemas.microsoft.com/WebPart/v2/ContentEditor">/HugoTest/SiteAssets/Smart404.html</ContentLink>
+  <ContentLink xmlns="http://schemas.microsoft.com/WebPart/v2/ContentEditor">/SiteAssets/Smart404.html</ContentLink>
   <Content xmlns="http://schemas.microsoft.com/WebPart/v2/ContentEditor" />
   <PartStorage xmlns="http://schemas.microsoft.com/WebPart/v2/ContentEditor" />
 </WebPart>
